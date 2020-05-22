@@ -7,6 +7,14 @@ Note 1: that this project is very much incomplete and might never be completed. 
 
 Note 2: A lot of re-inventing the wheel is happening here, and LibGDX is aimed to be used mostly for it's opengl bindings only. For easier portability to different, or standalone opengl library and for learning purposes.
 
+Current features:
+-Terrain Grid, SplatMap texturing
+
+Editor:
+-Model & Light placement tools
+-Basic terrain sculpting & painting
+
+
 Features planned:
 
 -Core:
