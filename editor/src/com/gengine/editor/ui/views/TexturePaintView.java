@@ -238,7 +238,7 @@ public class TexturePaintView extends VisTable {
             return;
         }
         TerrainNode terrain = region.getTerrain();
-        if(terrain.getMaterial(id) == null) {
+        if(terrain == null || terrain.getMaterial(id) == null) {
             return;
         }
 

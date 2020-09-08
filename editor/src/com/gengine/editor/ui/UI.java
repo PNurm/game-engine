@@ -10,20 +10,17 @@ import com.gengine.editor.ui.views.*;
 import com.gengine.editor.ui.widgets.SceneRenderWidget;
 import com.gengine.editor.ui.widgets.SplitPane;
 import com.kotcrab.vis.ui.VisUI;
-import com.kotcrab.vis.ui.widget.VisDialog;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
-import com.kotcrab.vis.ui.widget.VisWindow;
 import com.kotcrab.vis.ui.widget.file.FileChooser;
 
 
 public class UI extends Stage {
 
     private final VisTable rootTable;
-    //private final SplitPane splitPane;
     private final EditorBrushSettingsView editorBrushSettings;
     private final EditorMaterials editorMaterials;
-    private final EditorRegionNodeTree editorNodeTree;
+    private final EditorCellHierarchyTree editorNodeTree;
     private final VisLabel fpsLabel;
     private final VisLabel drawCalls;
     private final VisLabel shaders;
@@ -74,15 +71,15 @@ public class UI extends Stage {
         //rootTable.add(toolSettingBar).fillX().growX().row();
         toolSettingColumn = toolbar.getRight().add();
 
-        editorNodeTree = new EditorRegionNodeTree();
+        editorNodeTree = new EditorCellHierarchyTree();
         editorBrushSettings = new EditorBrushSettingsView();
 
-        VisTable debuInfo = new VisTable();
-        debuInfo.add(fpsLabel = new VisLabel("FPS")).pad(5);
-        debuInfo.add(drawCalls = new VisLabel("Draws")).pad(5);
-        debuInfo.add(shaders = new VisLabel("Shaders")).pad(5);
-        debuInfo.add(textures = new VisLabel("Textures")).pad(5);
-        sceneWidget.add(debuInfo);
+        VisTable debugInfo = new VisTable();
+        debugInfo.add(fpsLabel = new VisLabel("FPS")).pad(5);
+        debugInfo.add(drawCalls = new VisLabel("Draws")).pad(5);
+        debugInfo.add(shaders = new VisLabel("Shaders")).pad(5);
+        debugInfo.add(textures = new VisLabel("Textures")).pad(5);
+        sceneWidget.add(debugInfo);
 
         SplitPane splitPane = new SplitPane(editorNodeTree, sceneWidget, false);
         splitPane.setMaxSplitAmount(0.2f);
@@ -103,7 +100,7 @@ public class UI extends Stage {
         return editorMaterials;
     }
 
-    public EditorRegionNodeTree getCellTree() {
+    public EditorCellHierarchyTree getCellTree() {
         return editorNodeTree;
     }
 

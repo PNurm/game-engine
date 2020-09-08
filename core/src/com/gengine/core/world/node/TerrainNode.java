@@ -5,8 +5,8 @@ import com.gengine.core.model.Material;
 import com.gengine.core.model.terrain.TerrainBlendMap;
 import com.gengine.core.model.terrain.TerrainTile;
 import com.gengine.core.world.WorldCell;
-import com.gengine.core.world.CellLocation;
 import com.gengine.render.world.RenderContextProvider;
+import com.gengine.render.world.TerrainNodeRenderContext;
 
 import java.nio.ByteBuffer;
 
@@ -14,14 +14,14 @@ import static com.gengine.Constants.MULTITEXTURE_COUNT;
 
 public class TerrainNode extends RenderableNode {
 
-    private final CellLocation location;
+    private final WorldCell cell;
     private TerrainTile[][] tiles = new TerrainTile[WorldCell.SIZE][WorldCell.SIZE];
     private Material[] materials = new Material[MULTITEXTURE_COUNT];
     private TerrainBlendMap terrainBlendMap;
 
-    public TerrainNode(CellLocation location) {
+    public TerrainNode(WorldCell cell) {
         super("Terrain");
-        this.location = location;
+        this.cell = cell;
         this.terrainBlendMap = new TerrainBlendMap(TerrainBlendMap.WIDTH, TerrainBlendMap.HEIGHT);
 
         for (int i = 0; i < WorldCell.SIZE; i++)
@@ -30,6 +30,16 @@ public class TerrainNode extends RenderableNode {
 
         for(int i = 0; i < materials.length;i++) {
             materials[i] = Material.NULL;
+        }
+    }
+
+    @Override
+    public void dispose() {
+        if(getRenderContext() != null) {
+            TerrainNodeRenderContext renderContext = (TerrainNodeRenderContext) getRenderContext();
+            renderContext.dispose();
+
+            setRenderContext(null);
         }
     }
 
@@ -43,8 +53,12 @@ public class TerrainNode extends RenderableNode {
         super.setRenderContext(provider);
     }
 
-    public CellLocation getLocation() {
-        return location;
+    public WorldCell getCell() {
+        return cell;
+    }
+
+    public boolean movable() {
+        return false;
     }
 
     public TerrainTile getTile(int x, int z) {
@@ -71,11 +85,6 @@ public class TerrainNode extends RenderableNode {
     public TerrainBlendMap getTerrainBlendMap() {
         return terrainBlendMap;
     }
-
-    public void setTerrainBlendMap(TerrainBlendMap terrainBlendMap) {
-        this.terrainBlendMap = terrainBlendMap;
-    }
-
 
 
     @Override

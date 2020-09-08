@@ -14,10 +14,10 @@ public class NodeLibrary {
     private static final String nodeDirectory = "assets/nodes/";
     private static final FileFilter nodeFileFilter = pathname -> pathname.getName().endsWith(".nd");
 
-    public static HashMap<String, CellNode> nodeLibrary = new HashMap<>();
+    public static HashMap<String, CellNode> loaded = new HashMap<>();
 
     public static void addNode(CellNode node) {
-        nodeLibrary.put(node.getName(), node);
+        loaded.put(node.getName(), node);
         saveNode(node);
     }
 
@@ -59,8 +59,9 @@ public class NodeLibrary {
             try {
                 CellNode node = NodeRegistry.classFor(id).newInstance();
                 node.unpack(buffer);
-                nodeLibrary.put(node.getName(), node);
+                loaded.put(node.getName(), node);
             } catch (Exception e) {
+                System.out.println("Error loading node " + f.name());
                 e.printStackTrace();
             }
 

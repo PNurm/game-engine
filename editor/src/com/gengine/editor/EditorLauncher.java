@@ -8,7 +8,7 @@ public class EditorLauncher {
 
     public static void main (String[] arg) {
         Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
-        config.setWindowedMode(640, 480);
+        config.setWindowedMode(1280, 720);
         new Lwjgl3Application(new Editor(), config);
     }
 }

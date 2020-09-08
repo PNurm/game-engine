@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.gengine.Core;
+import com.gengine.core.world.WorldManager;
 import com.gengine.editor.Editor;
 import com.gengine.editor.TerrainLine;
 import com.gengine.render.world.RenderCore;
@@ -21,7 +22,7 @@ public abstract class EditorBrushTool extends EditorTool {
     public abstract void mod(float wx, float wy, float mod);
     public abstract void set(float wx, float wy, float mod);
 
-    private TerrainLine line;
+    private final TerrainLine line;
 
     public EditorBrushTool() {
         line = new TerrainLine(128);
@@ -106,7 +107,7 @@ public abstract class EditorBrushTool extends EditorTool {
                     float tw = 0;
                     for (float x = -brushSize; x <= brushSize; x++)
                         for (float z = -brushSize; z <= brushSize; z++) {
-                            float v = Editor.world().worldTile(terrainPoint.x + x, terrainPoint.z + z).getHeight();
+                            float v = WorldManager.worldTile(terrainPoint.x + x, terrainPoint.z + z).getHeight();
                             float w = brushType.weight(brushSize, x, z);
                             avg += v * w;
                             tw += w;
@@ -115,7 +116,7 @@ public abstract class EditorBrushTool extends EditorTool {
                         avg /= tw;
                         for (float x = -brushSize; x <= brushSize; x++)
                             for (float z = -brushSize; z <= brushSize; z++) {
-                                float v = Editor.world().worldTile(terrainPoint.x + x, terrainPoint.z + z).getHeight();
+                                float v = WorldManager.worldTile(terrainPoint.x + x, terrainPoint.z + z).getHeight();
                                 float w = brushType.weight(brushSize, x, z);
                                 set(terrainPoint.x + x, terrainPoint.z + z, v + (avg - v) * modScale * w / 3);
                             }

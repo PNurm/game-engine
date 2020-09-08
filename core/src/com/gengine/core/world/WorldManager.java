@@ -5,68 +5,74 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.gengine.core.model.terrain.TerrainTile;
+import com.gengine.core.world.node.CellNode;
 import com.gengine.core.world.node.TerrainNode;
 import com.gengine.util.IOUtils;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.*;
 
 import static com.gengine.core.world.WorldCell.TILE_SIZE;
 
 
 public class WorldManager {
 
-    private ArrayList<CellLocation> newCells = new ArrayList<>();
-    public HashMap<CellLocation, WorldCell> loadedCells = new HashMap<>();
-    private CellLocation currentLocation;
+    public HashMap<Integer, WorldCell> loadedCells = new HashMap<>();
 
+    private WorldCell currentCell;
 
     final int regionSpan = 1;
 
     public void updateCellView(float x, float z) {
 
-        float wx = (x / TILE_SIZE);
-        float wz = (z / TILE_SIZE);
+        float worldX = (x / TILE_SIZE);
+        float worldZ = (z / TILE_SIZE);
 
-        int newSectorX = (int) (wx / WorldCell.SIZE);
-        int newSectorZ = (int) (wz / WorldCell.SIZE);
+        int newSectorX = (int) (worldX / WorldCell.SIZE);
+        int newSectorY = (int) (worldZ / WorldCell.SIZE);
 
-        newCells.clear();
-        currentLocation = CellLocation.create(newSectorX, newSectorZ);
-        newCells.add(currentLocation);
+        //Avoid calculations if region hasn't changed.
+        if(currentCell != null &&
+                newSectorX == currentCell.getX() &&
+                newSectorY == currentCell.getY()) {
+            return;
+        }
 
-        for (int offX = -regionSpan; offX <= regionSpan; offX++) {
-            for (int offZ = -regionSpan; offZ <= regionSpan; offZ++) {
-                CellLocation l = CellLocation.create(newSectorX - offX, newSectorZ - offZ);
-                if (!l.inNegativeSpace()) {
-                    if (!newCells.contains(l))
-                        newCells.add(l);
+        currentCell = getCell(newSectorX, newSectorY);
+
+        int minX = newSectorX - regionSpan;
+        int minY = newSectorY - regionSpan;
+
+        int maxX = newSectorX + regionSpan;
+        int maxY = newSectorY + regionSpan;
+
+        for(WorldCell cell : loadedCells.values()) {
+            if(cell.getX() < minX || cell.getX() > maxX || cell.getY() < minY || cell.getY() > maxY) {
+                disposeCell(cell);
+            }
+        }
+
+        for(int cellY = minY; cellY < maxY; cellY++) {
+            for(int cellX = minX; cellX < maxX; cellX++) {
+
+                int cellHash = cellX * 31 + cellY;
+                if (loadedCells.containsKey(cellHash)) {
+                    continue;
                 }
+
+                WorldCell worldCell = getCell(cellX, cellY);
+                loadedCells.put(cellHash, worldCell);
+                System.out.println("Loaded " + worldCell);
             }
         }
+    }
 
-        for (Iterator<CellLocation> it = loadedCells.keySet().iterator(); it.hasNext(); ) {
-            CellLocation loadedRegion = it.next();
-            if (!newCells.contains(loadedRegion)) {
-                System.out.println("Disposed region " + loadedRegion);
-                it.remove();
-            }
-        }
-
-        for (CellLocation newLocation : newCells) {
-            if (!loadedCells.containsKey(newLocation)) {
-                WorldCell worldCell = getCell(newLocation);
-                worldCell.getTerrain();
-                //TerrainNodeRenderContext t = new TerrainNodeRenderContext(newLocation, r);
-                loadedCells.put(newLocation, worldCell);
-                System.out.println("Loaded region " + worldCell.getLocation());
-            }
-        }
-
+    private void disposeCell(WorldCell cell) {
+        loadedCells.remove(cell.hashCode());
+        cell.dispose();
+        System.out.println("Disposing " + cell);
     }
 
 
@@ -122,6 +128,7 @@ public class WorldManager {
         float terrainHeight = WorldManager.worldHeight(point.x, point.z);
         return point.y < terrainHeight;
     }
+
     public static float lerp2_smart(float h00, float h01, float h10, float h11, float tx, float ty) {
         // Is only one NaN?
         if (!Float.isFinite(h11) && Float.isFinite(h00) && Float.isFinite(h01) && Float.isFinite(h10))
@@ -134,6 +141,7 @@ public class WorldManager {
             h00 = h10 + h01 - h11;
         return lerp2(h00, h01, h10, h11, tx, ty);
     }
+
     public static float lerp2(float h00, float h01, float h10, float h11, float tx, float ty) {
         // Is only one NaN?
         if (!Float.isFinite(h00)) {
@@ -190,40 +198,46 @@ public class WorldManager {
 
         int tX = (int) Math.floor(worldX - (cellX * WorldCell.SIZE));
         int tY = (int) Math.floor(worldY - (cellY * WorldCell.SIZE));
-        CellLocation cellLocation = CellLocation.create(cellX, cellY);
 
-        WorldCell cell = getCell(cellLocation);
-        if(cell == null) {
+        WorldCell cell = getCell(cellX, cellY);
+        if (cell == null) {
             return null;
         }
         TerrainNode node = cell.getTerrain();
-        if(node == null) {
+        if (node == null) {
             return null;
         }
 
         return node.getTile(tX, tY);
     }
 
-    private static HashMap<CellLocation, WorldCell> cellCache = new HashMap<>();
+    private static HashMap<Long, WorldCell> cellCache = new HashMap<>();
 
-    public static WorldCell getCell(CellLocation location) {
-        WorldCell cell = null;
-        if (cellCache.containsKey(location)) {
-            cell = cellCache.get(location);
-            return cell;
+    public static WorldCell getCell(int cellX, int cellY) {
+        long hash = cellX * 31 + cellY;
+        if (cellCache.containsKey(hash)) {
+           // System.out.println("Return " + cellX + " " + cellY);
+            return cellCache.get(hash);
         }
-        WorldCell worldCell = new WorldCell(location);
-        cellCache.put(location, worldCell);
+        WorldCell worldCell = new WorldCell(cellX,cellY);
+        cellCache.put(hash, worldCell);
+        System.out.println("Created new " + worldCell);
 
-        System.out.println("create new " + location);
+        TerrainNode terrainNode = new TerrainNode(worldCell);
+        worldCell.root.addChild(terrainNode);
+        System.out.println("Created terrain node for " + worldCell);
+
         return worldCell;
     }
 
-    public static WorldCell load(CellLocation location) {
-        FileHandle handle = Gdx.files.local(location.toString());
 
-        WorldCell region = new WorldCell(location);
-        if(handle.file().exists()) {
+
+    public static WorldCell load(int cellX, int cellY) {
+        String filename = String.format("x%+04dy%+04d", cellX, cellY);
+        FileHandle handle = Gdx.files.local(filename);
+
+        WorldCell region = new WorldCell(cellX, cellY);
+        if (handle.file().exists()) {
             InputStream is = null;
             try {
                 is = new FileInputStream(handle.file());
@@ -243,7 +257,7 @@ public class WorldManager {
     }
 
     public WorldCell getCurrentCell() {
-        return getCell(currentLocation);
+        return currentCell;
     }
 
     public WorldCell getCellFromWorld(float x, float z) {
@@ -252,9 +266,8 @@ public class WorldManager {
         int cellX = (int) Math.floor(x / WorldCell.SIZE);
         int cellY = (int) Math.floor(z / WorldCell.SIZE);
 
-        CellLocation cellLocation = CellLocation.create(cellX, cellY);
-        WorldCell cell = getCell(cellLocation);
-        if(cell == null) {
+        WorldCell cell = getCell(cellX, cellY);
+        if (cell == null) {
             return null;
         }
         return cell;

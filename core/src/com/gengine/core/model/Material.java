@@ -69,9 +69,15 @@ public class Material implements DatabaseObject {
         return normalTexture;
     }
 
+    private Texture loadedDiffuseTexture;
+
     public Texture resolveDiffuse() {
-        return new TextureProvider(diffuseTexture).load();
+        if(loadedDiffuseTexture == null) {
+            loadedDiffuseTexture = new TextureProvider(diffuseTexture).load();
+        }
+        return loadedDiffuseTexture;
     }
+
     public Texture resolveNormal() {
         return new TextureProvider(diffuseTexture).load();
     }
@@ -107,5 +113,12 @@ public class Material implements DatabaseObject {
     }
     public void setNormal(String s) {
         this.normalTexture = s;
+    }
+
+    @Override
+    public String toString() {
+        return "Material{" +
+                "name='" + name + '\'' +
+                '}';
     }
 }

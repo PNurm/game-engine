@@ -71,6 +71,10 @@ public abstract class CellNode implements DatabaseObject {
         this.parent = parent;
     }
 
+    public boolean movable() {
+        return true;
+    }
+
     public void remove() {
         if (parent != null) {
             parent.children.remove(this);
@@ -124,5 +128,9 @@ public abstract class CellNode implements DatabaseObject {
 
     public void setName(String text) {
         this.name = text;
+    }
+
+    public void dispose() {
+
     }
 }

@@ -10,15 +10,14 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
 import com.gengine.editor.Editor;
 import com.gengine.editor.tool.EditMode;
-import com.gengine.editor.ui.FaTextButton;
-import com.gengine.util.Fa;
 import com.kotcrab.vis.ui.widget.VisTable;
+import com.kotcrab.vis.ui.widget.VisTextButton;
 
 public class EditorToolbar {
 
-    private final FaTextButton terrain;
-    private final FaTextButton select;
-    private final FaTextButton texturePaint;
+    private final VisTextButton terrain;
+    private final VisTextButton select;
+    private final VisTextButton texturePaint;
 
     private VisTable root;
 
@@ -44,7 +43,7 @@ public class EditorToolbar {
 
         root.addSeparator().pad(0f).height(2f).colspan(2);
 
-        select = new FaTextButton(Fa.VECTOR_SQUARE);
+        select = new VisTextButton("Object");
         select.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -54,7 +53,7 @@ public class EditorToolbar {
         });
         addItem(select, true);
 
-        terrain = new FaTextButton(Fa.MOUNTAIN);
+        terrain = new VisTextButton("Terrain");
         terrain.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -64,7 +63,7 @@ public class EditorToolbar {
         });
         addItem(terrain, true);
 
-        texturePaint = new FaTextButton(Fa.PALETTE);
+        texturePaint = new VisTextButton("Paint");
         texturePaint.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {

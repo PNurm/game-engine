@@ -248,10 +248,15 @@ public class EditorMaterials extends VisTable {
         Editor.ui.addActor(fileChooser.fadeIn());
     }
 
-    private void setDiffuseTexturePreview(String f) {
-        selectedTextureFile = f;
+    private void setDiffuseTexturePreview(String textureFilename) {
+        selectedTextureFile = textureFilename;
         if (selectedTextureFile != null) {
-            selectedDiffuseTexturePreview = Backgrounds.create(new Pixmap(Gdx.files.internal(f)), 64, 64);
+            FileHandle textureFile = Gdx.files.internal("assets/textures/" + textureFilename);
+            if(!textureFile.exists()) {
+                System.out.println("Texture file " + textureFilename + " not found at " + textureFile.path());
+                return;
+            }
+            selectedDiffuseTexturePreview = Backgrounds.create(new Pixmap(textureFile), 64, 64);
             diffuseTexturePreview.getStyle().imageUp = selectedDiffuseTexturePreview;
             diffuseTexturePreview.getStyle().imageDown = selectedDiffuseTexturePreview;
             diffuseTexturePreview.getStyle().imageChecked = selectedDiffuseTexturePreview;

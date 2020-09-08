@@ -2,11 +2,6 @@ package com.gengine.editor.ui.views;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.VertexAttributes;
-import com.badlogic.gdx.graphics.g3d.Material;
-import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
@@ -18,7 +13,6 @@ import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.gengine.core.assets.NodeLibrary;
 import com.gengine.core.world.WorldCell;
-import com.gengine.core.world.node.ModelNode;
 import com.gengine.editor.Editor;
 import com.gengine.editor.Style;
 import com.gengine.editor.tool.EditMode;
@@ -34,21 +28,26 @@ import com.kotcrab.vis.ui.widget.color.ColorPickerAdapter;
 
 import java.util.Map;
 
-import static com.badlogic.gdx.graphics.GL20.GL_TRIANGLES;
+public class EditorCellHierarchyTree extends VisTable {
 
-public class EditorRegionNodeTree extends VisTable {
-
-    private final VisTree nodeTree;
-    private final ScrollPane scrollPane;
-    private final VisTable content;
-    private final SimpleListAdapter<CellNode> simpleListAdapter;
-    private final ListView<CellNode> nodeLibrary;
-    private final VisTextButton modelsTabButton;
-    private final VisTextButton lightsTabButton;
-    private final VisTextButton createNodeBtn;
-    private final VisTextButton addSelected;
+    private VisTree cellNodeTree;
+    private ScrollPane cellScrollPane;
+    private final VisTable rootContent;
+    private SimpleListAdapter<CellNode> cellHierarchListAdapter;
+    private VisTable cellHierarcyTable;
+    private ListView<NodeLibraryEntry> libraryListView;
+    private SimpleListAdapter<NodeLibraryEntry> libraryListAdapter;
+    private VisTextButton addSelected;
+    private MenuItem newLightNode;
+    private MenuItem newModelNode;
 
     private CellNodeMenu cellTreeMenu;
+    private VisTree libraryTree;
+    private CellNodeMenu libraryTreeMenu;
+    private VisScrollPane libraryScrollPane;
+    private VisTable libraryTable;
+    private MenuItem createLight;
+    private MenuItem importModel;
 
     class CellNodeMenu extends PopupMenu {
 
@@ -109,45 +108,50 @@ public class EditorRegionNodeTree extends VisTable {
         }
     }
 
-    public EditorRegionNodeTree() {
-        this.nodeTree = new VisTree();
+    public EditorCellHierarchyTree() {
+
+        rootContent = new VisTable();
+        rootContent.setFillParent(true);
+        rootContent.align(Align.left | Align.top);
+        add(rootContent).fill().expand().row();
+
+        setupCellHierarchy();
+        setupNodeLibrary();
+
+        rootContent.pad(5);
+        rootContent.add(cellHierarcyTable).expand().fill().top().uniform().row();
+        rootContent.add(libraryTable).expand().fill().bottom().uniform().row();
+        rootContent.pack();
+
+
+        debugAll();
+        setupDragAndDrop();
+    }
+
+    private void setupCellHierarchy() {
+
+        this.cellNodeTree = new VisTree();
         this.cellTreeMenu = new CellNodeMenu();
-        nodeTree.getSelection().setProgrammaticChangeEvents(false);
+        cellNodeTree.getSelection().setProgrammaticChangeEvents(false);
 
-        content = new VisTable();
-        content.align(Align.left | Align.top);
+        cellScrollPane = new VisScrollPane(cellNodeTree);
+        cellScrollPane.setFlickScroll(false);
+        cellScrollPane.setFadeScrollBars(false);
 
+        cellHierarcyTable = new VisTable();
+        cellHierarcyTable.add(new VisLabel("Cell hierarchy")).expandX().fillX().pad(3f).row();
+        cellHierarcyTable.add(cellScrollPane).fill().expand();
 
-        scrollPane = new VisScrollPane(nodeTree);
-        scrollPane.setFlickScroll(false);
-        scrollPane.setFadeScrollBars(false);
-        content.add(scrollPane).height(200).fill().expand();
-
-        add(new VisLabel("Region Nodes")).expandX().fillX().pad(3f).row();
-        //addSeparator().row();
-        add(content).fill().expand().row();
-
-        VisTable libraryTabs = new VisTable();
-        libraryTabs.add(modelsTabButton = new VisTextButton("Models"));
-        libraryTabs.add(lightsTabButton = new VisTextButton("Lights"));
-
-        final ButtonGroup buttonGroup = new ButtonGroup();
-        buttonGroup.setMaxCheckCount(1);
-        buttonGroup.setMinCheckCount(1);
-        buttonGroup.add(modelsTabButton, lightsTabButton);
-
-        simpleListAdapter = new SimpleListAdapter<CellNode>(new Array<CellNode>());
-        simpleListAdapter.setSelectionMode(AbstractListAdapter.SelectionMode.SINGLE);
-
-        nodeTree.addListener(new InputListener() {
+        cellHierarchListAdapter = new SimpleListAdapter<>(new Array<>());
+        cellHierarchListAdapter.setSelectionMode(AbstractListAdapter.SelectionMode.SINGLE);
+        cellNodeTree.addListener(new InputListener() {
             @Override
             public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
-                TreeCellNode treeCellNode = (TreeCellNode) nodeTree.getNodeAt(y);
+                TreeCellNode treeCellNode = (TreeCellNode) cellNodeTree.getNodeAt(y);
                 if(treeCellNode == null) {
                     return;
                 }
                 CellNode node = treeCellNode.getValue();
-                System.out.println("hello");
                 if(event.getButton() == 1) {
                     cellTreeMenu.setSelection(node);
                     cellTreeMenu.showMenu(getStage(), Gdx.input.getX(), (Gdx.graphics.getHeight() - Gdx.input.getY()));
@@ -157,107 +161,112 @@ public class EditorRegionNodeTree extends VisTable {
                     tool.setSelection(node);
                 }
             }
-
             @Override
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
                 return true;
             }
         });
+    }
 
-        nodeLibrary = new ListView<CellNode>(simpleListAdapter);
-        nodeLibrary.setItemClickListener(new ListView.ItemClickListener<CellNode>() {
-            @Override
-            public void clicked(CellNode item) {
-                if(item instanceof LightNode) {
+    private void setupNodeLibrary() {
+        this.libraryTree = new VisTree();
+        this.libraryTreeMenu = new CellNodeMenu();
+        libraryTree.getSelection().setProgrammaticChangeEvents(false);
 
-                    EditLightDialog d = new EditLightDialog((LightNode) item, new CreateLightCallback() {
-                        @Override
-                        void callback(LightNode light) {
+        libraryScrollPane = new VisScrollPane(libraryTree);
+        libraryScrollPane.setFlickScroll(false);
+        libraryScrollPane.setFadeScrollBars(false);
 
-                        }
-                    });
-                    d.show(getStage());
-                }
+        libraryListAdapter = new SimpleListAdapter<>(new Array<>());
+        libraryListAdapter.setSelectionMode(AbstractListAdapter.SelectionMode.SINGLE);
+
+        libraryListView = new ListView<>(libraryListAdapter);
+        libraryListAdapter.add(new NodeLibraryEntry("Hello", null));
+        libraryListView.setItemClickListener(item -> {
+
+            if(item.cellNode instanceof LightNode) {
+                EditLightDialog d = new EditLightDialog((LightNode) item.cellNode, new CreateLightCallback() {
+                    @Override
+                    void callback(LightNode light) {
+
+                    }
+                });
+                d.show(getStage());
             }
         });
-        VisTable library = new VisTable();
-        library.add(new VisLabel("Node Library")).colspan(2).expandX().fillX().pad(3f).row();
-        library.add(libraryTabs).colspan(2).fillX().row();
-        library.add(nodeLibrary.getMainTable()).height(150).colspan(2).grow().expand().row();
-        library.add(addSelected = new VisTextButton("Add selected"));
-        library.add(createNodeBtn = new VisTextButton(""));
-        add(library).fill().expand();
-        pack();
 
-        modelsTabButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                createNodeBtn.setText("Import model");
-
-                ModelBuilder modelBuilder = new ModelBuilder();
-                Material m = new Material();
-                m.set(ColorAttribute.createDiffuse(1, 0, 0, 1));
-
-                Model sphere = modelBuilder.createSphere(6, 6, 6, 6, 6, GL_TRIANGLES, m, VertexAttributes.Usage.Position);
-
-                ModelNode node = new ModelNode("SphereModel");
-                node.position.set(0, 10f, 0);
-                node.setModel(sphere);
-
-                refreshNodeTree();
-
-                super.clicked(event, x, y);
-            }
-        });
-        lightsTabButton.addListener(new ClickListener() {
+        PopupMenu popupMenu = new PopupMenu();
+        popupMenu.addItem(createLight = new MenuItem("Create Light"));
+        popupMenu.addItem(importModel = new MenuItem("Import Model"));
+        createLight.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                createNodeBtn.setText("Create new light");
-                super.clicked(event, x, y);
+                CreateLightDialog createLightDialog  = new CreateLightDialog(
+                        new CreateLightCallback() {
+                            @Override
+                            void callback(LightNode light) {
+                                NodeLibrary.addNode(light);
+                                refreshNodeLibrary();
+                            }
+                        });
+                createLightDialog.show(getStage());
             }
         });
+        VisTextButton newButton = null;
+
+        libraryTable = new VisTable();
+        libraryTable.add(new VisLabel("Node Library")).expandX().fillX().pad(3f);
+        libraryTable.add(newButton = new VisTextButton("+ New node")).expandX().fillX().pad(3f).row();
+        libraryTable.add(libraryScrollPane).colspan(2).fill().expand().row();
+        libraryTable.add(addSelected = new VisTextButton("Add selected")).colspan(2);
+
+        VisTextButton finalNewButton = newButton;
+        newButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                popupMenu.showMenu(finalNewButton.getStage(), finalNewButton);
+            }
+        });
+
         addSelected.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                if(simpleListAdapter.getSelection().size == 0) {
+                if(cellHierarchListAdapter.getSelection().size == 0) {
                     return;
                 }
-                CellNode node = simpleListAdapter.getSelection().get(0);
+                CellNode node = cellHierarchListAdapter.getSelection().get(0);
                 Editor.getCurrentCell().root.addChild(node);
 
                 refreshNodeTree();
                 super.clicked(event, x, y);
             }
         });
-        createNodeBtn.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                if(lightsTabButton.isChecked()) {
-                    CreateLightDialog d  = new CreateLightDialog(
-                            new CreateLightCallback() {
-                                @Override
-                                void callback(LightNode light) {
-                                    NodeLibrary.addNode(light);
-                                    refreshNodeLibrary();
-                                }
-                             });
-                    d.show(Editor.ui);
-                }
-                super.clicked(event, x, y);
-            }
-        });
 
-        setupDragAndDrop();
+    }
+
+    static class NodeLibraryEntry {
+        String name;
+        CellNode cellNode;
+
+        public NodeLibraryEntry(String name, CellNode value)  {
+            this.name = name;
+            this.cellNode = value;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 
     private DragAndDrop dragAndDrop = new DragAndDrop();
 
     private void setupDragAndDrop() {
-        dragAndDrop.addSource(new DragAndDrop.Source(nodeTree) {
+        dragAndDrop.addSource(new DragAndDrop.Source(cellNodeTree) {
             @Override
             public DragAndDrop.Payload dragStart(InputEvent event, float x, float y, int pointer) {
                 DragAndDrop.Payload payload = new DragAndDrop.Payload();
-                Tree.Node node = nodeTree.getNodeAt(y);
+                Tree.Node node = cellNodeTree.getNodeAt(y);
                 if(node != null) {
                     payload.setObject(node);
                     return payload;
@@ -266,15 +275,15 @@ public class EditorRegionNodeTree extends VisTable {
             }
         });
 
-        dragAndDrop.addTarget(new DragAndDrop.Target(nodeTree) {
+        dragAndDrop.addTarget(new DragAndDrop.Target(cellNodeTree) {
             @Override
             public boolean drag(DragAndDrop.Source source, DragAndDrop.Payload payload, float x, float y, int pointer) {
-                Tree.Node node = nodeTree.getNodeAt(y);
-                if(node == null && nodeTree.getSelectedNode() == null) {
+                Tree.Node node = cellNodeTree.getNodeAt(y);
+                if(node == null && cellNodeTree.getSelectedNode() == null) {
                     return false;
                 }
-                if(node != null && !nodeTree.getSelection().contains(node)) {
-                    nodeTree.getSelection().set(node);
+                if(node != null && !cellNodeTree.getSelection().contains(node)) {
+                    cellNodeTree.getSelection().set(node);
                 }
                 return true;
             }
@@ -282,7 +291,7 @@ public class EditorRegionNodeTree extends VisTable {
             @Override
             public void drop(DragAndDrop.Source source, DragAndDrop.Payload payload, float x, float y, int pointer) {
                 TreeCellNode dragged = (TreeCellNode) payload.getObject();
-                TreeCellNode droppedOn = (TreeCellNode) nodeTree.getNodeAt(y);
+                TreeCellNode droppedOn = (TreeCellNode) cellNodeTree.getNodeAt(y);
                 if(droppedOn != null) {
                     if(droppedOn.getValue().isParentOf(dragged.getValue())) {
                         return;
@@ -296,23 +305,23 @@ public class EditorRegionNodeTree extends VisTable {
     }
 
     public void refreshNodeLibrary() {
-        simpleListAdapter.clear();
-        for(Map.Entry<String, CellNode> regionNode : NodeLibrary.nodeLibrary.entrySet()) {
-            simpleListAdapter.add(regionNode.getValue());
+        libraryListAdapter.clear();
+        for(Map.Entry<String, CellNode> regionNode : NodeLibrary.loaded.entrySet()) {
+            libraryListAdapter.add(new NodeLibraryEntry(regionNode.getKey(), regionNode.getValue()));
         }
     }
 
     public CellNode getSelectedNode() {
-        TreeCellNode impl = (TreeCellNode) nodeTree.getSelectedNode();
-        if(nodeTree.getSelectedNode() == null)
+        TreeCellNode impl = (TreeCellNode) cellNodeTree.getSelectedNode();
+        if(cellNodeTree.getSelectedNode() == null)
             return null;
         return impl.getValue();
     }
 
     public void setSelectedNode(CellNode selectedNode) {
-        nodeTree.getSelection().clear();
-        TreeCellNode node = (TreeCellNode) nodeTree.findNode(selectedNode);
-        nodeTree.getSelection().set(node);
+        cellNodeTree.getSelection().clear();
+        TreeCellNode node = (TreeCellNode) cellNodeTree.findNode(selectedNode);
+        cellNodeTree.getSelection().set(node);
     }
 
     abstract class CreateLightCallback {
@@ -488,22 +497,22 @@ public class EditorRegionNodeTree extends VisTable {
     }
     public void refreshNodeTree() {
         Array array = new Array();
-        nodeTree.findExpandedValues(array);
-        nodeTree.clearChildren();
+        cellNodeTree.findExpandedValues(array);
+        cellNodeTree.clearChildren();
 
         WorldCell region = Editor.getCurrentCell();
         if(region == null) {
             return;
         }
         populateCellTree(null, region.root);
-        nodeTree.restoreExpandedValues(array);
+        cellNodeTree.restoreExpandedValues(array);
     }
 
     private void populateCellTree(TreeCellNode parent, CellNode child) {
         //Add node to node tree
         TreeCellNode childParent = new TreeCellNode(child);
         if(parent == null) {
-            nodeTree.add(childParent);
+            cellNodeTree.add(childParent);
         } else {
             parent.add(childParent);
         }

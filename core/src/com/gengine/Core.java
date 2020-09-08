@@ -30,7 +30,6 @@ public abstract class Core extends ApplicationAdapter {
     @Override
     public void create() {
         this.instance = this;
-        Fa.initialize();
         glProfiler = new GLProfiler(Gdx.graphics);
         glProfiler.enable();
 
@@ -41,7 +40,11 @@ public abstract class Core extends ApplicationAdapter {
 
         renderCore = new RenderCore(worldManager);
         renderCore.setCamera(camera);
+
+        //Fa.initialize();
     }
+
+
 
     public static WorldManager world() {
         return instance.worldManager;

@@ -13,7 +13,6 @@ import com.gengine.core.model.terrain.TerrainNodeAttribute;
 import com.gengine.core.model.terrain.TerrainTile;
 import com.gengine.core.world.WorldCell;
 import com.gengine.core.world.WorldManager;
-import com.gengine.core.world.CellLocation;
 import com.gengine.core.world.node.TerrainNode;
 
 import java.util.ArrayList;
@@ -21,8 +20,6 @@ import java.util.ArrayList;
 import static com.gengine.core.world.WorldCell.TILE_SIZE;
 
 public class TerrainNodeRenderContext extends RenderContextProvider<TerrainNode> {
-
-    public final CellLocation location;
 
     private final Mesh mesh;
     private final int posPos;
@@ -40,10 +37,11 @@ public class TerrainNodeRenderContext extends RenderContextProvider<TerrainNode>
     private final int tangentPos;
     private final int binormalPos;
     private final Material material;
+    private final WorldCell cell;
 
     public TerrainNodeRenderContext(TerrainNode region) {
         super(region);
-        this.location = getElement().getLocation();
+        this.cell = getElement().getCell();
 
         terrainVertexCount = WorldCell.SIZE + 1;
         VertexAttributes attributes = MeshBuilder.createAttributes(
@@ -94,8 +92,8 @@ public class TerrainNodeRenderContext extends RenderContextProvider<TerrainNode>
                 int vID = x * terrainVertexCount + z;
                 Vertex vertex = vertexInfo[vID];
 
-                float worldX = (location.startX() + x) * TILE_SIZE;
-                float worldZ = (location.startY() + z) * TILE_SIZE;
+                float worldX = (cell.startX() + x) * TILE_SIZE;
+                float worldZ = (cell.startY() + z) * TILE_SIZE;
 
                 TerrainTile tile;
                 if (x < WorldCell.SIZE && z < WorldCell.SIZE) {
@@ -179,48 +177,9 @@ public class TerrainNodeRenderContext extends RenderContextProvider<TerrainNode>
         mesh.dispose();
     }
 
-    class MaterialGroup {
-
-        public short[] indices;
-        public int indexOffset;
-        private Material material;
-
-        public MaterialGroup(Material material, short... indices) {
-            this.material = material;
-            this.indices = indices;
-        }
-
-        public void insert(short... elements) {
-            short[] nEw = new short[indices.length + elements.length];
-            System.arraycopy(indices, 0, nEw, 0, indices.length);
-            System.arraycopy(elements, 0, nEw, indices.length, elements.length);
-            indices = nEw;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj instanceof MaterialGroup) {
-                MaterialGroup group = (MaterialGroup) obj;
-                return group.material.equals(material);
-            }
-            return false;
-        }
-    }
-
-    private final ArrayList<MaterialGroup> materialGroup = new ArrayList<MaterialGroup>();
-
-    public MaterialGroup getMaterialGroup(Material material) {
-        for (MaterialGroup m : materialGroup) {
-            if (m.material.equals(material))
-                return m;
-        }
-        return null;
-    }
-
-
     public Vector3 position(Vector3 pos, float worldX, float worldY) {
         TerrainTile tt = WorldManager.worldTile(worldX, worldY);
-        pos.set(worldX - location.worldX(), tt != null ? tt.getHeight() : 0, worldY - location.worldY());
+        pos.set(worldX - cell.worldX(), tt != null ? tt.getHeight() : 0, worldY - cell.worldY());
         return pos;
     }
 
@@ -311,12 +270,8 @@ public class TerrainNodeRenderContext extends RenderContextProvider<TerrainNode>
         if (meshDirty) {
             setVertices();
             updateMesh();
-            meshDirty = false;
-        }
-        if (materialDirty) {
-            materialGroup.clear();
             updateMaterials();
-            materialDirty = false;
+            meshDirty = false;
         }
         Renderable r = pool.obtain();
         r.meshPart.mesh = mesh;
@@ -327,7 +282,6 @@ public class TerrainNodeRenderContext extends RenderContextProvider<TerrainNode>
         r.meshPart.primitiveType = GL20.GL_TRIANGLES;
         r.meshPart.update();
         renderables.add(r);
-
     }
 
 }

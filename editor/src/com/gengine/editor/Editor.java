@@ -2,23 +2,17 @@ package com.gengine.editor;
 
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
-import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.math.collision.Ray;
 import com.gengine.Core;
 import com.gengine.core.world.WorldCell;
 import com.gengine.core.world.node.LightNode;
-import com.gengine.core.world.node.ModelNode;
-import com.gengine.editor.convert.AssimpModelLoader;
 import com.gengine.editor.model.LightNodeRenderContext;
 import com.gengine.editor.tool.EditMode;
 import com.gengine.editor.tool.GlyphShader;
 import com.gengine.editor.ui.UI;
 import com.gengine.editor.ui.widgets.SceneRenderWidget;
-import com.gengine.core.world.CellLocation;
 import com.gengine.render.world.TerrainShader;
-
-import java.io.File;
 
 public class Editor extends Core implements InputProcessor {
 
@@ -27,10 +21,10 @@ public class Editor extends Core implements InputProcessor {
     public static void setEditMode(EditMode editMode) {
         Editor.editMode = editMode;
     }
-   // private static
     private static EditMode editMode;
 
-    private static WorldCell lastTerrainRegion;
+    private static WorldCell lastCell;
+
     private static Ray lastRay;
     private final Vector3 terrainPick = new Vector3().set(0, 0, 0);
     private CameraController cameraController;
@@ -39,10 +33,6 @@ public class Editor extends Core implements InputProcessor {
     private TerrainLine targetBoundary;
     public static Ray getLastRay() {
         return lastRay;
-    }
-
-    public static float dst(float x1, float y1, float x2, float y2) {
-        return (float) Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2));
     }
 
     public static WorldCell getCurrentCell() {
@@ -85,7 +75,7 @@ public class Editor extends Core implements InputProcessor {
 
         Gdx.input.setInputProcessor(new InputMultiplexer(ui, this, cameraController));
 
-        try {
+       /* try {
             world().updateCellView(cameraController.getTarget().x, cameraController.getTarget().z);
             Model model = AssimpModelLoader.load(new File("C:/import/wolf.dae"));
             ModelNode node = new ModelNode("wolf");
@@ -93,7 +83,7 @@ public class Editor extends Core implements InputProcessor {
             Editor.getCurrentCell().root.addChild(node);
         } catch (Exception e) {
             e.printStackTrace();
-        }
+        }*/
     }
 
     @Override
@@ -103,8 +93,8 @@ public class Editor extends Core implements InputProcessor {
         Gdx.gl.glClearColor(0, 0, 0, 1);
 
         world().updateCellView(cameraController.getTarget().x, cameraController.getTarget().z);
-        if (world().getCurrentCell() != lastTerrainRegion) {
-            lastTerrainRegion = world().getCurrentCell();
+        if (world().getCurrentCell() != lastCell) {
+            lastCell = world().getCurrentCell();
             ui.getCellTree().refreshNodeTree();
             ui.getTexturePaintView().regionUpdated();
         }
@@ -122,8 +112,8 @@ public class Editor extends Core implements InputProcessor {
         targetBoundary.submit(cameraController.getTarget().x + 3f, cameraController.getTarget().y, cameraController.getTarget().z + 3f);
         targetBoundary.submit(cameraController.getTarget().x - 3f, cameraController.getTarget().y, cameraController.getTarget().z + 3f);
 
-        if (lastTerrainRegion != null) {
-            CellLocation l = lastTerrainRegion.getLocation();
+        if (lastCell != null) {
+            WorldCell l = lastCell;
             sectorBoundary.submit(l.worldX(), l.worldY());
             sectorBoundary.submit(l.worldX() + WorldCell.SIZE * WorldCell.TILE_SIZE, l.worldY());
             sectorBoundary.submit(l.worldX() + WorldCell.SIZE * WorldCell.TILE_SIZE, l.worldY() + WorldCell.SIZE * WorldCell.TILE_SIZE);

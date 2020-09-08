@@ -15,7 +15,7 @@ public abstract class RenderableNode extends CellNode {
     }
 
     public void setRenderContext(RenderContextProvider provider) {
-        this.renderContext = provider;
+       this.renderContext = provider;
     }
 
     public RenderContextProvider getRenderContext() {

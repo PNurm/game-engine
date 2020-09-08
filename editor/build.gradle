@@ -4,8 +4,9 @@ sourceCompatibility = 1.8
 sourceSets.main.java.srcDirs = [ "src/" ]
 sourceSets.main.resources.srcDirs = ["../core/assets"]
 
-project.ext.mainClassName = "com.eval.editor.EditorLauncher"
-project.ext.assetsDir = new File("../core/assets")
+project.ext.mainClassName = "com.gengine.editor.EditorLauncher"
+project.ext.assetsDir = new File("../assets")
+
 
 task run(dependsOn: classes, type: JavaExec) {
     main = project.mainClassName
