@@ -22,12 +22,12 @@ public class NodeRegistry {
     }
 
     private static void registerNode(int id, Class<? extends CellNode> node) {
-        nodeIDLookup.put(TerrainNode.class, id);
-        nodeTable[id] = TerrainNode.class;
+        nodeIDLookup.put(node, id);
+        nodeTable[id] = node;
     }
 
     public static int idFor(Class<? extends CellNode> node) {
-        return nodeIDLookup.get(node).intValue();
+        return nodeIDLookup.get(node);
     }
 
     public static Class<? extends CellNode> classFor(int id) {
