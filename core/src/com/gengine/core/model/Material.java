@@ -23,6 +23,7 @@ public class Material implements DatabaseObject {
 
     public float shininess;
     public float opacity;
+    private Texture loadedNormalTexture;
 
 
     public Color getDiffuseColor() {
@@ -79,7 +80,10 @@ public class Material implements DatabaseObject {
     }
 
     public Texture resolveNormal() {
-        return new TextureProvider(diffuseTexture).load();
+        if(loadedNormalTexture == null) {
+            loadedNormalTexture = new TextureProvider(normalTexture).load();
+        }
+        return loadedNormalTexture;
     }
 
     @Override
