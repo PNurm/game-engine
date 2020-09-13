@@ -3,7 +3,7 @@ package com.gengine.editor;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
-import com.gengine.util.Backgrounds;
+import com.gengine.editor.util.Backgrounds;
 
 public class Style {
 

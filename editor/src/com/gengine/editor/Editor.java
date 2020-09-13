@@ -4,15 +4,13 @@ import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.math.*;
 import com.badlogic.gdx.math.collision.Ray;
-import com.gengine.Core;
-import com.gengine.core.world.WorldCell;
-import com.gengine.core.world.node.LightNode;
-import com.gengine.editor.model.LightNodeRenderContext;
+import com.gengine.core.Core;
+import com.gengine.core.cell.WorldCell;
+import com.gengine.core.cell.node.TerrainNode;
 import com.gengine.editor.tool.EditMode;
 import com.gengine.editor.tool.GlyphShader;
 import com.gengine.editor.ui.UI;
 import com.gengine.editor.ui.widgets.SceneRenderWidget;
-import com.gengine.render.world.TerrainShader;
 
 public class Editor extends Core implements InputProcessor {
 
@@ -39,10 +37,14 @@ public class Editor extends Core implements InputProcessor {
         return world().getCurrentCell();
     }
 
+    public static void smoothTranslate(Vector3 position) {
+        CameraController.smoothTranslate = position.cpy();
+        CameraController.smoothPos = 0.0F;
+    }
+
     @Override
     public void create() {
         super.create();
-        renderContextImpl.put(LightNode.class, LightNodeRenderContext.class);
         editMode = EditMode.SCULPT;
 
         sectorBoundary = new TerrainLine(64);
@@ -74,17 +76,8 @@ public class Editor extends Core implements InputProcessor {
         cameraController.setCamera(140, 30, 240);
 
         Gdx.input.setInputProcessor(new InputMultiplexer(ui, this, cameraController));
-
-       /* try {
-            world().updateCellView(cameraController.getTarget().x, cameraController.getTarget().z);
-            Model model = AssimpModelLoader.load(new File("C:/import/wolf.dae"));
-            ModelNode node = new ModelNode("wolf");
-            node.setModel(model);
-            Editor.getCurrentCell().root.addChild(node);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }*/
     }
+
 
     @Override
     public void render() {
@@ -137,11 +130,11 @@ public class Editor extends Core implements InputProcessor {
     @Override
     public boolean keyUp(int keycode) {
         if(keycode == Input.Keys.F3) {
-            TerrainShader.DEBUG_NORMALS = !TerrainShader.DEBUG_NORMALS;
-            System.out.println(TerrainShader.DEBUG_NORMALS);
+            TerrainNode.TerrainShader.DEBUG_NORMALS = !TerrainNode.TerrainShader.DEBUG_NORMALS;
+            System.out.println(TerrainNode.TerrainShader.DEBUG_NORMALS);
         }
         if(keycode == Input.Keys.F2) {
-            TerrainShader.WIREFRAME = !TerrainShader.WIREFRAME;
+            TerrainNode.TerrainShader.WIREFRAME = !TerrainNode.TerrainShader.WIREFRAME;
         }
         return false;
     }

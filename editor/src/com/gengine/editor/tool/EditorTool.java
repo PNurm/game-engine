@@ -1,7 +1,7 @@
 package com.gengine.editor.tool;
 
 import com.badlogic.gdx.InputAdapter;
-import com.gengine.render.world.RenderCore;
+import com.gengine.core.RenderCore;
 
 public abstract class EditorTool {
 

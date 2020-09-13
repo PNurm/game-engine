@@ -1,18 +1,28 @@
 package com.gengine.core.model;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
-import com.gengine.core.assets.TextureProvider;
-import com.gengine.util.DatabaseObject;
-import com.gengine.util.IOUtils;
+import com.gengine.core.library.Library;
+import com.gengine.core.library.ex.AssetProviderNotFoundException;
+import com.gengine.core.library.provider.TextureProvider;
+import com.gengine.core.util.DatabaseObject;
+import com.gengine.core.util.IOUtils;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.nio.ByteBuffer;
 
 public class Material implements DatabaseObject {
 
     public static final Material NULL = new Material();
+    /**
+     * The file this material was loaded from
+     */
+    public FileHandle fileHandle;
 
-    public String name;
+    public String name = "UNNAMED_MATERIAL";
 
     public String diffuseTexture;
     public String normalTexture;
@@ -73,15 +83,30 @@ public class Material implements DatabaseObject {
     private Texture loadedDiffuseTexture;
 
     public Texture resolveDiffuse() {
-        if(loadedDiffuseTexture == null) {
-            loadedDiffuseTexture = new TextureProvider(diffuseTexture).load();
+        if(diffuseTexture == null) {
+            return null;
+        }
+        if (loadedDiffuseTexture == null) {
+            try {
+                loadedDiffuseTexture =  (Texture) Library.provideAsset(Texture.class, diffuseTexture);
+            } catch (AssetProviderNotFoundException e) {
+                e.printStackTrace();
+            }
         }
         return loadedDiffuseTexture;
     }
 
     public Texture resolveNormal() {
-        if(loadedNormalTexture == null) {
-            loadedNormalTexture = new TextureProvider(normalTexture).load();
+        if(normalTexture == null) {
+            return null;
+        }
+        if (loadedNormalTexture == null) {
+            try {
+                loadedNormalTexture =  (Texture) Library.provideAsset(Texture.class, normalTexture);
+            } catch (AssetProviderNotFoundException e) {
+                System.out.println("Unable to load texture asset");
+                e.printStackTrace();
+            }
         }
         return loadedNormalTexture;
     }
@@ -115,6 +140,7 @@ public class Material implements DatabaseObject {
     public void setDiffuse(String selectedTextureFile) {
         this.diffuseTexture = selectedTextureFile;
     }
+
     public void setNormal(String s) {
         this.normalTexture = s;
     }

@@ -4,11 +4,11 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
-import com.gengine.Core;
-import com.gengine.core.world.WorldManager;
+import com.gengine.core.Core;
+import com.gengine.core.cell.WorldManager;
 import com.gengine.editor.Editor;
 import com.gengine.editor.TerrainLine;
-import com.gengine.render.world.RenderCore;
+import com.gengine.core.RenderCore;
 
 public abstract class EditorBrushTool extends EditorTool {
 

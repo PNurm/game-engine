@@ -9,12 +9,12 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import com.badlogic.gdx.math.collision.Ray;
-import com.gengine.Core;
-import com.gengine.core.world.WorldCell;
-import com.gengine.core.world.node.CellNode;
-import com.gengine.core.world.node.RenderableNode;
+import com.gengine.core.Core;
+import com.gengine.core.cell.WorldCell;
+import com.gengine.core.cell.node.CellNode;
+import com.gengine.core.cell.node.components.RenderComponent;
 import com.gengine.editor.Editor;
-import com.gengine.render.world.RenderCore;
+import com.gengine.core.RenderCore;
 
 public class SelectionTool extends EditorTool {
 
@@ -44,13 +44,13 @@ public class SelectionTool extends EditorTool {
     private TransformMode transformMode = null;
     private TransformAxis transformAxis = null;
 
-    private VisualBoundingBox selectionBounds;
+    private SelectionBounds selectionBounds;
     private CellNode selection;
     private GlyphShader glyphShader = new GlyphShader();
     private Ray ray;
 
     public SelectionTool() {
-        selectionBounds = new VisualBoundingBox();
+        selectionBounds = new SelectionBounds();
         setInputAdapter(new InputAdapter() {
             @Override
             public boolean touchDown(int screenX, int screenY, int pointer, int button) {
@@ -104,12 +104,9 @@ public class SelectionTool extends EditorTool {
 
     @Override
     public void update() {
-        BoundingBox boundingBox = new BoundingBox();
         if (Gdx.input.isButtonJustPressed(1)) {
             pickSelection();
         }
-
-
         if (getSelection() != null) {
             if (transformMode != null) {
                 Vector3 nodePos = getSelection().position;
@@ -148,6 +145,16 @@ public class SelectionTool extends EditorTool {
                     } else {
                         nodePos.sub(delta);
                     }
+                    if(nodePos.x > WorldCell.SIZE) {
+                        nodePos.x = WorldCell.SIZE;
+                    } else if(nodePos.x < 0) {
+                        nodePos.x = 0;
+                    }
+                    if(nodePos.z > WorldCell.SIZE) {
+                        nodePos.z = WorldCell.SIZE;
+                    } else if(nodePos.z < 0) {
+                        nodePos.z = 0;
+                    }
                 } else if (transformMode == TransformMode.SCALE) {
                     //Vector3 delta = lastPosition.sub(terrainPoint);
 
@@ -172,7 +179,7 @@ public class SelectionTool extends EditorTool {
                     rh = 0;
                     rv = 0;
                 }
-                selectionBounds.set((RenderableNode) getSelection());
+                selectionBounds.set(getSelection());
 
                 mv = 0;
 
@@ -185,7 +192,7 @@ public class SelectionTool extends EditorTool {
     private void pickSelection() {
         WorldCell cell = Editor.getCurrentCell();
 
-        CellNode pickedNode = pickCellNode(cell.root);
+        CellNode pickedNode = pickCellNode(cell);
         if(pickedNode != null) {
             setSelection(pickedNode);
             System.out.println("Picked " + pickedNode);
@@ -194,30 +201,23 @@ public class SelectionTool extends EditorTool {
     }
 
     private CellNode pickCellNode(CellNode node) {
-        if (node instanceof RenderableNode) {
-            RenderableNode renderableNode = (RenderableNode) node;
-            if(intersect(renderableNode)) {
+        if(node.hasComponent(RenderComponent.class)) {
+            boundingBox.clr();
+
+            RenderComponent renderComponent = node.getComponent(RenderComponent.class);
+            if(renderComponent.getBoundingBox(boundingBox, true) == null) {
+                return null;
+            }
+            if (Intersector.intersectRayBounds(Editor.getLastRay(), boundingBox, null)) {
                 return node;
             }
-            System.out.println(renderableNode + " does not intersect");
+            System.out.println(node + " does not intersect");
         }
         for(CellNode child : node.children()) {
             return pickCellNode(child);
         }
         return null;
     }
-
-    private boolean intersect(RenderableNode renderableNode) {
-        boundingBox.clr();
-        if(renderableNode.getBoundingBox(boundingBox, true) == null) {
-            return false;
-        }
-        if (Intersector.intersectRayBounds(Editor.getLastRay(), boundingBox, null)) {
-            return true;
-        }
-        return false;
-    }
-
 
     public CellNode getSelection() {
         return selection;
@@ -226,8 +226,8 @@ public class SelectionTool extends EditorTool {
     public void setSelection(CellNode selection) {
         this.selection = selection;
         selectionBounds.reset();
-        if (selection instanceof RenderableNode) {
-            selectionBounds.set((RenderableNode) selection);
+        if(selection.hasComponent(RenderComponent.class)) {
+            selectionBounds.set(selection);
         }
         Editor.ui.getCellTree().setSelectedNode(selection);
     }

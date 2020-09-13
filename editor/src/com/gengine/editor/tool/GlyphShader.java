@@ -20,8 +20,8 @@ public class GlyphShader implements Shader {
 
     public GlyphShader() {
 
-        final String vertexShader = Gdx.files.internal("assets/glyph_v.glsl").readString();
-        final String fragmentShader = Gdx.files.internal("assets/glyph_f.glsl").readString();
+        final String vertexShader = Gdx.files.local("assets/shaders/glyph_v.glsl").readString();
+        final String fragmentShader = Gdx.files.local("assets/shaders/glyph_f.glsl").readString();
 
         this.program = new ShaderProgram(vertexShader, fragmentShader);
         if (!program.isCompiled()) {

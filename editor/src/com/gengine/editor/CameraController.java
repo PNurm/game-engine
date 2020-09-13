@@ -6,6 +6,7 @@ import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
+import com.gengine.core.util.Heap;
 
 public class CameraController extends InputAdapter {
 
@@ -21,6 +22,8 @@ public class CameraController extends InputAdapter {
     public float translateUnits = 10f;
 
     private Vector3 target = new Vector3();
+    private Vector3 offset = new Vector3();
+
     private int button;
 
     public CameraController(Camera camera) {
@@ -70,22 +73,46 @@ public class CameraController extends InputAdapter {
 
     @Override
     public boolean scrolled(int amount) {
-        float distanceToTarget = camera.position.dst(target);
         final float zoomUnits = camera.position.dst(target) * 0.05f * amount;
 
-        camera.translate(tmpV1.set(camera.direction).scl(-zoomUnits));
+        Vector3 offset = Heap.checkout3();
+        offset.add(camera.direction);
+        offset.scl(-zoomUnits);
+        camera.position.add(offset);
 
         return super.scrolled(amount);
     }
 
-    public void update() {
+    public static Vector3 smoothTranslate;
+    public static float smoothPos;
+    private static final float smoothSpeed = 5;
 
+    private Vector3 tmp = new Vector3();
+
+    public void update() {
+        if(smoothTranslate != null) {
+            if(smoothPos < 1.0) {
+                smoothPos += 0.1F * Gdx.graphics.getDeltaTime();
+
+                final float translateUnits = camera.position.dst(target);
+
+                Vector3 desiredPosition = tmp.set(smoothTranslate).add(new Vector3(0, 0, -5f));
+                target.lerp(desiredPosition, smoothPos);
+                camera.position.lerp(desiredPosition, smoothPos);
+            } else {
+                smoothTranslate = null;
+            }
+        }
     }
 
     public void setCamera(float x, float y, float z) {
         this.camera.position.set(x, y, z);
         this.target.set(x, 0f, z);
         this.camera.lookAt(target);
+    }
+
+    public void smoothTranslate(Vector3 dest) {
+
     }
 
     public Vector3 getTarget() {

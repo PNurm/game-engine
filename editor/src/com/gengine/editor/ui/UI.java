@@ -6,7 +6,12 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Cell;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.gengine.editor.ui.views.*;
+import com.gengine.editor.ui.dialog.material.MaterialConfigDialog;
+import com.gengine.editor.ui.hierarchy.LibraryTree;
+import com.gengine.editor.ui.inspector.EditorInspectorView;
+import com.gengine.editor.ui.tools.EditorBrushSettingsView;
+import com.gengine.editor.ui.tools.TexturePaintView;
+import com.gengine.editor.ui.hierarchy.CellHierarchyTree;
 import com.gengine.editor.ui.widgets.SceneRenderWidget;
 import com.gengine.editor.ui.widgets.SplitPane;
 import com.kotcrab.vis.ui.VisUI;
@@ -19,13 +24,17 @@ public class UI extends Stage {
 
     private final VisTable rootTable;
     private final EditorBrushSettingsView editorBrushSettings;
-    private final EditorMaterials editorMaterials;
-    private final EditorCellHierarchyTree editorNodeTree;
+    private final MaterialConfigDialog editorMaterials;
+
+    private final VisTable hierarchy; //EditorCellHierarchyTree editorNodeTree;
+
     private final VisLabel fpsLabel;
     private final VisLabel drawCalls;
     private final VisLabel shaders;
     private final VisLabel textures;
     private final Cell toolSettingColumn;
+    private final CellHierarchyTree cellHierarchy;
+    private final LibraryTree libraryHierarchy;
 
     public SceneRenderWidget getSceneWidget() {
         return sceneWidget;
@@ -60,7 +69,7 @@ public class UI extends Stage {
 
         toolbar = new EditorToolbar();
         menuBar = new EditorMenuBar();
-        editorMaterials = new EditorMaterials();
+        editorMaterials = new MaterialConfigDialog();
 
 
         fileChooser = new FileChooser(FileChooser.Mode.OPEN);
@@ -71,7 +80,17 @@ public class UI extends Stage {
         //rootTable.add(toolSettingBar).fillX().growX().row();
         toolSettingColumn = toolbar.getRight().add();
 
-        editorNodeTree = new EditorCellHierarchyTree();
+        hierarchy = new VisTable();
+
+
+        VisTable hierarchT = new VisTable();
+        hierarchy.add(cellHierarchy = new CellHierarchyTree()).expand().fill().top().uniform().row();
+        hierarchT.pad(5);
+        hierarchy.add(libraryHierarchy = new LibraryTree()).expand().fill().bottom().uniform().row();
+        hierarchT.pack();
+
+        hierarchy.add(hierarchT).uniform().fill().expand().row();
+
         editorBrushSettings = new EditorBrushSettingsView();
 
         VisTable debugInfo = new VisTable();
@@ -81,7 +100,12 @@ public class UI extends Stage {
         debugInfo.add(textures = new VisLabel("Textures")).pad(5);
         sceneWidget.add(debugInfo);
 
-        SplitPane splitPane = new SplitPane(editorNodeTree, sceneWidget, false);
+        SplitPane splitPane2 = new SplitPane(sceneWidget, new EditorInspectorView(), false);
+        splitPane2.setMinSplitAmount(0.8f);
+        splitPane2.setSplitAmount(0.8f);
+
+        SplitPane splitPane = new SplitPane(hierarchy, splitPane2, false);
+
         splitPane.setMaxSplitAmount(0.2f);
         splitPane.setSplitAmount(0.2f);
 
@@ -96,12 +120,12 @@ public class UI extends Stage {
         return editorBrushSettings;
     }
 
-    public EditorMaterials getEditorMaterials() {
+    public MaterialConfigDialog getEditorMaterials() {
         return editorMaterials;
     }
 
-    public EditorCellHierarchyTree getCellTree() {
-        return editorNodeTree;
+    public CellHierarchyTree getCellTree() {
+        return cellHierarchy;
     }
 
     public void updateDebugs(GLProfiler glProfiler) {
@@ -114,5 +138,9 @@ public class UI extends Stage {
     public void showToolWidget(String title, Actor texturePaintView) {
         toolSettingColumn.setActor(texturePaintView);
         toolSettingColumn.right();
+    }
+
+    public LibraryTree getLibrary() {
+        return libraryHierarchy;
     }
 }

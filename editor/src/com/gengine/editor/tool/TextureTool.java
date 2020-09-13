@@ -5,16 +5,13 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.collision.Ray;
-import com.gengine.Core;
-import com.gengine.core.model.terrain.TerrainBlendMap;
-import com.gengine.core.model.terrain.TerrainTile;
-import com.gengine.core.world.WorldCell;
-import com.gengine.core.world.node.TerrainNode;
+import com.gengine.core.Core;
+import com.gengine.core.cell.WorldCell;
+import com.gengine.core.cell.node.TerrainNode;
 import com.gengine.editor.Editor;
-import com.gengine.render.world.TerrainNodeRenderContext;
-import com.gengine.util.Backgrounds;
+import com.gengine.editor.util.Backgrounds;
 
-import static com.gengine.core.world.WorldCell.TILE_SIZE;
+import static com.gengine.core.cell.WorldCell.TILE_SIZE;
 
 public class TextureTool extends EditorBrushTool {
 
@@ -58,11 +55,11 @@ public class TextureTool extends EditorBrushTool {
             WorldCell cell = Editor.world().getCellFromWorld(terrainPoint.x, terrainPoint.z);
             TerrainNode terrainNode = cell.getTerrain();
 
-            if (terrainNode == null || terrainNode.getRenderContext() == null) {
+            if (terrainNode == null) {
                 return;
             }
 
-            TerrainBlendMap terrainBlendMap = terrainNode.getTerrainBlendMap();
+            TerrainNode.TextureMap textureMap = terrainNode.getTerrainBlendMap();
             Vector2 nextPoint = getBlendMapPos(terrainPoint.x, terrainPoint.z);
 
             if(lastPoint.equals(nextPoint)) {
@@ -78,7 +75,7 @@ public class TextureTool extends EditorBrushTool {
             float scale = modScale * (primaryButtonDown ? 1 : -1);
             float dist = nextPoint.dst(lastPoint);
 
-            int splatBrushSize = (int) brushSize * (TerrainBlendMap.WIDTH / WorldCell.WORLD_SIZE);
+            int splatBrushSize = (int) brushSize * (TerrainNode.TextureMap.WIDTH / WorldCell.WORLD_SIZE);
 
             float alphaStep = splatBrushSize / (8f * dist);
 
@@ -88,7 +85,7 @@ public class TextureTool extends EditorBrushTool {
                     for (float y = -splatBrushSize; y < splatBrushSize; y++) {
                         float opacity = scale * getBrushType().weight(splatBrushSize, x, y);
                         if (opacity > 0) {
-                            drawDot(terrainBlendMap, (int) (l.x + x), (int) (l.y + y), opacity);
+                            drawDot(textureMap, (int) (l.x + x), (int) (l.y + y), opacity);
                         }
                     }
                 }
@@ -96,14 +93,14 @@ public class TextureTool extends EditorBrushTool {
 
             lastPoint.set(nextPoint);
 
-            terrainBlendMap.updateTexture();
-            Editor.ui.getTexturePaintView().updateBlendImage(Backgrounds.create(terrainBlendMap.getMap(), TerrainBlendMap.WIDTH, TerrainBlendMap.HEIGHT));
+            textureMap.updateTexture();
+            Editor.ui.getTexturePaintView().updateBlendImage(Backgrounds.create(textureMap.getMap(), TerrainNode.TextureMap.WIDTH, TerrainNode.TextureMap.HEIGHT));
         } else {
             beginPointSet = false;
         }
     }
 
-    public void drawDot(TerrainBlendMap blendMap, int xx, int yy, float alpha) {
+    public void drawDot(TerrainNode.TextureMap blendMap, int xx, int yy, float alpha) {
         int blendedColor = blend(blendMap.getMap().getPixel(xx, yy), alpha);
         blendMap.getMap().drawPixel(xx, yy, blendedColor);
     }
@@ -118,8 +115,8 @@ public class TextureTool extends EditorBrushTool {
         float cellLocalX = worldX - cellStartX;
         float cellLocalZ = worldZ - cellStartZ;
 
-        int x = (int) (cellLocalX * (TerrainBlendMap.WIDTH / WorldCell.WORLD_SIZE));
-        int y = (int) (cellLocalZ * (TerrainBlendMap.HEIGHT / WorldCell.WORLD_SIZE));
+        int x = (int) (cellLocalX * (TerrainNode.TextureMap.WIDTH / WorldCell.WORLD_SIZE));
+        int y = (int) (cellLocalZ * (TerrainNode.TextureMap.HEIGHT / WorldCell.WORLD_SIZE));
         return new Vector2(x, y);
     }
 
@@ -163,7 +160,7 @@ public class TextureTool extends EditorBrushTool {
         return Color.rgba8888(color);
     }
 
-    public void additiveBlend(TerrainTile tile, int textureID, float strength) {
+    /*public void additiveBlend(TerrainNode.Tile tile, int textureID, float strength) {
         if (tile.terrainNode.getMaterial(textureID) == null) {
             return;
         }
@@ -181,8 +178,9 @@ public class TextureTool extends EditorBrushTool {
         if (tile.materialWeights[textureID] < 0) {
             tile.materialWeights[textureID] = 0;
         }
-        TerrainNodeRenderContext renderContext = (TerrainNodeRenderContext) tile.terrainNode.getRenderContext();
+
+        TerrainNodeRenderContext renderContext = (TerrainNodeRenderContext) tile.terrainNode;
         renderContext.materialDirty = true;
         renderContext.meshDirty = true;
-    }
+    }*/
 }
